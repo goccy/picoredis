@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <poll.h>
 #include <stdarg.h>
+#include <assert.h>
 
 typedef struct {
 	const char *host;
@@ -24,6 +25,11 @@ typedef struct {
 	int sock;
 	char *receive_buf;
 } picoredis_t;
+
+typedef struct {
+	int num;
+	const char **values;
+} picoredis_array_t;
 
 typedef enum {
 	PICOREDIS_REPLY_SINGLE_LINE,
@@ -39,6 +45,7 @@ typedef struct {
 	union {
 		char *svalue;
 		int ivalue;
+		picoredis_array_t *avalue;
 	} v;
 } picoredis_reply_t;
 
@@ -189,6 +196,35 @@ void picoredis_free(picoredis_t *ctx)
 int picoredis_has_error(picoredis_t *ctx)
 {
 	return ctx->error != NULL;
+}
+
+picoredis_array_t *picoredis_array_alloc(int num)
+{
+	picoredis_array_t *ret = (picoredis_array_t *)malloc(sizeof(picoredis_array_t));
+	memset(ret, 0, sizeof(picoredis_array_t));
+	ret->num = num;
+	ret->values = (const char **)malloc(sizeof(const char *) * num);
+	return ret;
+}
+
+void picoredis_array_free(picoredis_array_t *array)
+{
+	if (!array) return;
+	
+	free(array->values);
+	free(array);
+	array = NULL;
+}
+
+size_t picoredis_array_num(picoredis_array_t *array)
+{
+	return array->num;
+}
+
+const char *picoredis_array_get(picoredis_array_t *array, int idx)
+{
+	assert(0 <= idx && idx < array->num);
+	return array->values[idx];
 }
 
 int picoredis_connect_with_ctx(picoredis_t *ctx, const char *host, int port)
@@ -487,6 +523,10 @@ picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx)
 				reply->length = atoi(line + 1);
 				break;
 			}
+			case '*':
+				reply->type     = PICOREDIS_REPLY_MULTI_BULK;
+				reply->v.avalue = picoredis_array_alloc(atoi(line + 1));
+				break;
 			default:
 				break;
 			}
@@ -498,6 +538,17 @@ picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx)
 			case PICOREDIS_REPLY_ERROR:
 				reply->v.ivalue = -1;
 				break;
+			case PICOREDIS_REPLY_MULTI_BULK: {
+				int is_value_line = (i - 1) % 2;
+				if (is_value_line) {
+					size_t size = strlen(line) + 1;
+					char *value = (char *)malloc(size);
+					memset(value, 0, size);
+					memcpy(value, line, size - 1);
+					reply->v.avalue->values[(i - 2) / 2] = value;
+				}
+				break;
+			}
 			case PICOREDIS_REPLY_BULK: {
 				if (reply->length > 0) {
 					reply->v.svalue = (char *)malloc(reply->length + 1);
@@ -600,6 +651,21 @@ char *picoredis_exec_type(picoredis_t *ctx, const char *key)
 	if (!reply) return NULL;
 
 	return reply->v.svalue;
+}
+
+picoredis_array_t *picoredis_exec_keys(picoredis_t *ctx, const char *key)
+{
+	static const size_t nargs = 1;
+	size_t lengths[]     = { strlen(key) };
+	const char *values[] = { key };
+	ctx->error = NULL;
+	char *command = picoredis_command_create(PICOREDIS_KEYS, nargs, lengths, values);
+	picoredis_send_command(ctx, command);
+	if (picoredis_has_error(ctx)) return NULL;
+
+	picoredis_reply_t *reply = picoredis_receive_command(ctx);
+	if (!reply) return NULL;
+	return reply->v.avalue;
 }
 
 void picoredis_exec_set(picoredis_t *ctx, const char *key, const char *value)

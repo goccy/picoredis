@@ -63,6 +63,27 @@ static void test_command_del(picoredis_t *ctx)
 	ASSERT_NUMEQ("fail delete keys", picoredis_exec_del(ctx, 1, key), 0);
 }
 
+static void test_command_keys(picoredis_t *ctx)
+{
+	picoredis_exec_set(ctx, "foo", value);
+	picoredis_exec_set(ctx, "foobar", value);
+	picoredis_array_t *array = picoredis_exec_keys(ctx, "foo*");
+	size_t i = 0;
+	for (; i < picoredis_array_num(array); ++i) {
+		const char *value = picoredis_array_get(array, i);
+		switch (i) {
+		case 0:
+			ASSERT_STREQ("key pattern foo* => foobar", value, "foobar");
+			break;
+		case 1:
+			ASSERT_STREQ("key pattern foo* => foo", value, "foo");
+			break;
+		default:
+			break;
+		}
+	}
+}
+
 int main(int argc, char **argv)
 {
 	picoredis_t *ctx = picoredis_connect("127.0.0.1", 6379);
@@ -75,5 +96,6 @@ int main(int argc, char **argv)
 	test_command_exists(ctx);
 	test_command_type(ctx);
 	test_command_del(ctx);
+	test_command_keys(ctx);
 	return 0;
 }
