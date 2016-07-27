@@ -9,10 +9,10 @@ int main(int argc, char **argv)
 	}
 	static const char *key   = "mykey";
 	static const char *value = "myvalue";
-	picoredis_command_set(redis_ctx, key, value);
+	picoredis_exec_set(redis_ctx, key, value);
 	if (!picoredis_has_error(redis_ctx)) {
 		fprintf(stderr, "SET: [%s:%s]\n", key, value);
-		char *value = picoredis_command_get(redis_ctx, "mykey");
+		char *value = picoredis_exec_get(redis_ctx, key);
 		if (picoredis_has_error(redis_ctx)) {
 			picoredis_error(redis_ctx);
 			return 1;
