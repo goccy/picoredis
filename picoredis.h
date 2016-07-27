@@ -15,6 +15,7 @@
 #include <netdb.h>
 #include <signal.h>
 #include <poll.h>
+#include <stdarg.h>
 
 typedef struct {
 	const char *host;
@@ -34,17 +35,131 @@ typedef enum {
 
 typedef struct {
 	picoredis_reply_type type;
-	size_t length;
+	int length;
 	union {
 		char *svalue;
 		int ivalue;
 	} v;
 } picoredis_reply_t;
 
+#define COMMAND_TYPE_DEF(type) PICOREDIS_ ## type
+
 typedef enum {
-	PICOREDIS_SET,
-	PICOREDIS_GET,
-	PICOREDIS_NONE,
+	COMMAND_TYPE_DEF(QUIT),
+	COMMAND_TYPE_DEF(AUTH),
+
+	COMMAND_TYPE_DEF(EXISTS),
+	COMMAND_TYPE_DEF(DEL),
+	COMMAND_TYPE_DEF(TYPE),
+	COMMAND_TYPE_DEF(KEYS),
+	COMMAND_TYPE_DEF(RANDOMKEY),
+	COMMAND_TYPE_DEF(RENAME),
+	COMMAND_TYPE_DEF(RENAMENX),
+	COMMAND_TYPE_DEF(DBSIZE),
+	COMMAND_TYPE_DEF(EXPIRE),
+	COMMAND_TYPE_DEF(PERSIST),
+	COMMAND_TYPE_DEF(TTL),
+	COMMAND_TYPE_DEF(SELECT),
+	COMMAND_TYPE_DEF(MOVE),
+	COMMAND_TYPE_DEF(FLUSHDB),
+	COMMAND_TYPE_DEF(FLUSHALL),
+	
+	COMMAND_TYPE_DEF(SET),
+	COMMAND_TYPE_DEF(GET),
+	COMMAND_TYPE_DEF(GETSET),
+	COMMAND_TYPE_DEF(MGET),
+	COMMAND_TYPE_DEF(SETNX),
+	COMMAND_TYPE_DEF(SETEX),
+	COMMAND_TYPE_DEF(MSET),
+	COMMAND_TYPE_DEF(MSETNX),
+	COMMAND_TYPE_DEF(INCR),
+	COMMAND_TYPE_DEF(INCRBY),
+	COMMAND_TYPE_DEF(DECR),
+	COMMAND_TYPE_DEF(DECRBY),
+	COMMAND_TYPE_DEF(APPEND),
+	COMMAND_TYPE_DEF(SUBSTR),
+
+	COMMAND_TYPE_DEF(RPUSH),
+	COMMAND_TYPE_DEF(LPUSH),
+	COMMAND_TYPE_DEF(LLEN),
+	COMMAND_TYPE_DEF(LRANGE),
+	COMMAND_TYPE_DEF(LTRIM),
+	COMMAND_TYPE_DEF(LINDEX),
+	COMMAND_TYPE_DEF(LSET),
+	COMMAND_TYPE_DEF(LREM),
+	COMMAND_TYPE_DEF(LPOP),
+	COMMAND_TYPE_DEF(RPOP),
+	COMMAND_TYPE_DEF(BLPOP),
+	COMMAND_TYPE_DEF(BRPOP),
+	COMMAND_TYPE_DEF(RPOPLPUSH),
+
+	COMMAND_TYPE_DEF(SADD),
+	COMMAND_TYPE_DEF(SREM),
+	COMMAND_TYPE_DEF(SPOP),
+	COMMAND_TYPE_DEF(SMOVE),
+	COMMAND_TYPE_DEF(SCARD),
+	COMMAND_TYPE_DEF(SISMEMBER),
+	COMMAND_TYPE_DEF(SINTER),
+	COMMAND_TYPE_DEF(SINTERSTORE),
+	COMMAND_TYPE_DEF(SUNION),
+	COMMAND_TYPE_DEF(SUNIONSTORE),
+	COMMAND_TYPE_DEF(SDIFF),
+	COMMAND_TYPE_DEF(SDIFFSTORE),
+	COMMAND_TYPE_DEF(SMEMBERS),
+	COMMAND_TYPE_DEF(SRANDMEMBER),
+
+	COMMAND_TYPE_DEF(ZADD),
+	COMMAND_TYPE_DEF(ZREM),
+	COMMAND_TYPE_DEF(ZINCRBY),
+	COMMAND_TYPE_DEF(ZRANK),
+	COMMAND_TYPE_DEF(ZREVRANK),
+	COMMAND_TYPE_DEF(ZRANGE),
+	COMMAND_TYPE_DEF(ZREVRANGE),
+	COMMAND_TYPE_DEF(ZRANGEBYSCORE),
+	COMMAND_TYPE_DEF(ZCOUNT),
+	COMMAND_TYPE_DEF(ZCARD),
+	COMMAND_TYPE_DEF(ZSCORE),
+	COMMAND_TYPE_DEF(ZREMRANGEBYRANK),
+	COMMAND_TYPE_DEF(ZREMRANGEBYSCORE),
+	COMMAND_TYPE_DEF(ZUNIONSTORE),
+	COMMAND_TYPE_DEF(ZINTERSTORE),
+
+	COMMAND_TYPE_DEF(HSET),
+	COMMAND_TYPE_DEF(HGET),
+	COMMAND_TYPE_DEF(HMGET),
+	COMMAND_TYPE_DEF(HMSET),
+	COMMAND_TYPE_DEF(HINCRBY),
+	COMMAND_TYPE_DEF(HEXISTS),
+	COMMAND_TYPE_DEF(HDEL),
+	COMMAND_TYPE_DEF(HLEN),
+	COMMAND_TYPE_DEF(HKEYS),
+	COMMAND_TYPE_DEF(HVALS),
+	COMMAND_TYPE_DEF(HGETALL),
+
+	COMMAND_TYPE_DEF(SORT),
+
+	COMMAND_TYPE_DEF(MULTI),
+	COMMAND_TYPE_DEF(EXEC),
+	COMMAND_TYPE_DEF(DISCARD),
+	COMMAND_TYPE_DEF(WATCH),
+	COMMAND_TYPE_DEF(UNWATCH),
+
+	COMMAND_TYPE_DEF(SUBSCRIBE),
+	COMMAND_TYPE_DEF(UNSUBSCRIBE),
+	COMMAND_TYPE_DEF(PUBLISH),
+
+	COMMAND_TYPE_DEF(SAVE),
+	COMMAND_TYPE_DEF(BGSAVE),
+	COMMAND_TYPE_DEF(LASTSAVE),
+	COMMAND_TYPE_DEF(SHUTDOWN),
+	COMMAND_TYPE_DEF(BGREWRITEAOF),
+
+	COMMAND_TYPE_DEF(INFO),
+	COMMAND_TYPE_DEF(MONITOR),
+	COMMAND_TYPE_DEF(SLAVEOF),
+	COMMAND_TYPE_DEF(CONFIG),
+
+	COMMAND_TYPE_DEF(NONE),
 } picoredis_command_type;
 
 typedef struct {
@@ -157,16 +272,130 @@ char *picoredis_parse_command_args(int nargs, size_t *lengths, const char **valu
 	return args_buffer;
 }
 
+#define COMMAND_DEF(type) { PICOREDIS_ ## type, #type, strlen(#type) }
+
 picoredis_command_type_t picoredis_get_command_type(picoredis_command_type type)
 {
 	static picoredis_command_type_t all_command_types[] = {
-		{ PICOREDIS_SET,  "SET",  3 },
-		{ PICOREDIS_GET,  "GET",  3 },
-		{ PICOREDIS_NONE, "NONE", 4 }
+		COMMAND_DEF(QUIT),
+		COMMAND_DEF(AUTH),
+
+		COMMAND_DEF(EXISTS),
+		COMMAND_DEF(DEL),
+		COMMAND_DEF(TYPE),
+		COMMAND_DEF(KEYS),
+		COMMAND_DEF(RANDOMKEY),
+		COMMAND_DEF(RENAME),
+		COMMAND_DEF(RENAMENX),
+		COMMAND_DEF(DBSIZE),
+		COMMAND_DEF(EXPIRE),
+		COMMAND_DEF(PERSIST),
+		COMMAND_DEF(TTL),
+		COMMAND_DEF(SELECT),
+		COMMAND_DEF(MOVE),
+		COMMAND_DEF(FLUSHDB),
+		COMMAND_DEF(FLUSHALL),
+	
+		COMMAND_DEF(SET),
+		COMMAND_DEF(GET),
+		COMMAND_DEF(GETSET),
+		COMMAND_DEF(MGET),
+		COMMAND_DEF(SETNX),
+		COMMAND_DEF(SETEX),
+		COMMAND_DEF(MSET),
+		COMMAND_DEF(MSETNX),
+		COMMAND_DEF(INCR),
+		COMMAND_DEF(INCRBY),
+		COMMAND_DEF(DECR),
+		COMMAND_DEF(DECRBY),
+		COMMAND_DEF(APPEND),
+		COMMAND_DEF(SUBSTR),
+
+		COMMAND_DEF(RPUSH),
+		COMMAND_DEF(LPUSH),
+		COMMAND_DEF(LLEN),
+		COMMAND_DEF(LRANGE),
+		COMMAND_DEF(LTRIM),
+		COMMAND_DEF(LINDEX),
+		COMMAND_DEF(LSET),
+		COMMAND_DEF(LREM),
+		COMMAND_DEF(LPOP),
+		COMMAND_DEF(RPOP),
+		COMMAND_DEF(BLPOP),
+		COMMAND_DEF(BRPOP),
+		COMMAND_DEF(RPOPLPUSH),
+
+		COMMAND_DEF(SADD),
+		COMMAND_DEF(SREM),
+		COMMAND_DEF(SPOP),
+		COMMAND_DEF(SMOVE),
+		COMMAND_DEF(SCARD),
+		COMMAND_DEF(SISMEMBER),
+		COMMAND_DEF(SINTER),
+		COMMAND_DEF(SINTERSTORE),
+		COMMAND_DEF(SUNION),
+		COMMAND_DEF(SUNIONSTORE),
+		COMMAND_DEF(SDIFF),
+		COMMAND_DEF(SDIFFSTORE),
+		COMMAND_DEF(SMEMBERS),
+		COMMAND_DEF(SRANDMEMBER),
+
+		COMMAND_DEF(ZADD),
+		COMMAND_DEF(ZREM),
+		COMMAND_DEF(ZINCRBY),
+		COMMAND_DEF(ZRANK),
+		COMMAND_DEF(ZREVRANK),
+		COMMAND_DEF(ZRANGE),
+		COMMAND_DEF(ZREVRANGE),
+		COMMAND_DEF(ZRANGEBYSCORE),
+		COMMAND_DEF(ZCOUNT),
+		COMMAND_DEF(ZCARD),
+		COMMAND_DEF(ZSCORE),
+		COMMAND_DEF(ZREMRANGEBYRANK),
+		COMMAND_DEF(ZREMRANGEBYSCORE),
+		COMMAND_DEF(ZUNIONSTORE),
+		COMMAND_DEF(ZINTERSTORE),
+
+		COMMAND_DEF(HSET),
+		COMMAND_DEF(HGET),
+		COMMAND_DEF(HMGET),
+		COMMAND_DEF(HMSET),
+		COMMAND_DEF(HINCRBY),
+		COMMAND_DEF(HEXISTS),
+		COMMAND_DEF(HDEL),
+		COMMAND_DEF(HLEN),
+		COMMAND_DEF(HKEYS),
+		COMMAND_DEF(HVALS),
+		COMMAND_DEF(HGETALL),
+
+		COMMAND_DEF(SORT),
+
+		COMMAND_DEF(MULTI),
+		COMMAND_DEF(EXEC),
+		COMMAND_DEF(DISCARD),
+		COMMAND_DEF(WATCH),
+		COMMAND_DEF(UNWATCH),
+
+		COMMAND_DEF(SUBSCRIBE),
+		COMMAND_DEF(UNSUBSCRIBE),
+		COMMAND_DEF(PUBLISH),
+
+		COMMAND_DEF(SAVE),
+		COMMAND_DEF(BGSAVE),
+		COMMAND_DEF(LASTSAVE),
+		COMMAND_DEF(SHUTDOWN),
+		COMMAND_DEF(BGREWRITEAOF),
+
+		COMMAND_DEF(INFO),
+		COMMAND_DEF(MONITOR),
+		COMMAND_DEF(SLAVEOF),
+		COMMAND_DEF(CONFIG),
+
+		COMMAND_DEF(NONE),
 	};
 
 	size_t i = 0;
-	for (; all_command_types[i].type != PICOREDIS_NONE; ++i) {
+	for (; all_command_types[i].type != COMMAND_TYPE_DEF(NONE); ++i) {
 		if (all_command_types[i].type == type) {
 			return all_command_types[i];
 		}
@@ -213,6 +442,7 @@ picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx)
 		return NULL;
 	}
 	char *buf = ctx->receive_buf;
+	//fprintf(stderr, "buf = [%s]\n", buf);
 	char *all_lines[BUFSIZ] = {0};
 	size_t i = 0;
 	size_t line_top_index = 0;
@@ -232,13 +462,25 @@ picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx)
 		char *line = all_lines[i];
 		if (i == 0) {
 			switch (line[0]) {
-			case '+':
+			case '+': {
 				reply->type = PICOREDIS_REPLY_SINGLE_LINE;
+				size_t line_size = strlen(line);
+				reply->v.svalue = (char *)malloc(line_size);
+				memset(reply->v.svalue, 0, line_size);
+				memcpy((void *)reply->v.svalue, line + 1, line_size);
 				break;
-			case '-':
+			}
+			case '-': {
 				reply->type = PICOREDIS_REPLY_ERROR;
+				size_t line_size = strlen(line);
+				reply->v.svalue = (char *)malloc(line_size);
+				memset(reply->v.svalue, 0, line_size);
+				memcpy((void *)reply->v.svalue, line + 1, line_size);
 				break;
+			}
 			case ':':
+				reply->type     = PICOREDIS_REPLY_NUM;
+				reply->v.ivalue = atoi(line + 1);
 				break;
 			case '$': {
 				reply->type   = PICOREDIS_REPLY_BULK;
@@ -256,11 +498,14 @@ picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx)
 			case PICOREDIS_REPLY_ERROR:
 				reply->v.ivalue = -1;
 				break;
-			case PICOREDIS_REPLY_BULK:
-				reply->v.svalue = (char *)malloc(reply->length + 1);
-				memset(reply->v.svalue, 0, reply->length + 1);
-				memcpy((void *)reply->v.svalue, line, reply->length);
+			case PICOREDIS_REPLY_BULK: {
+				if (reply->length > 0) {
+					reply->v.svalue = (char *)malloc(reply->length + 1);
+					memset(reply->v.svalue, 0, reply->length + 1);
+					memcpy((void *)reply->v.svalue, line, reply->length);
+				}
 				break;
+			}
 			default:
 				break;
 			}
@@ -269,13 +514,100 @@ picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx)
 	return reply;
 }
 
+void picoredis_exec_quit(picoredis_t *ctx)
+{
+	static const size_t nargs = 0;
+	ctx->error = NULL;
+	picoredis_send_command(ctx, picoredis_command_create(PICOREDIS_QUIT, nargs, NULL, NULL));
+	if (picoredis_has_error(ctx)) return;
+}
 
-void picoredis_command_set(picoredis_t *ctx, const char *key, const char *value)
+int picoredis_exec_auth(picoredis_t *ctx, const char *password)
+{
+	static const size_t nargs = 1;
+	size_t lengths[]     = { strlen(password) };
+	const char *values[] = { password };
+
+	ctx->error = NULL;
+
+	picoredis_send_command(ctx, picoredis_command_create(PICOREDIS_AUTH, nargs, lengths, values));
+	if (picoredis_has_error(ctx)) return 0;
+
+	picoredis_reply_t *reply = picoredis_receive_command(ctx);
+	if (!reply) {
+		ctx->error = "cannot receive reply";
+		return 0;
+	}
+
+	if (reply->type == PICOREDIS_REPLY_ERROR) {
+		ctx->error = "cannot set";
+		return 0;
+	}
+	return 1;
+}
+
+int picoredis_exec_exists(picoredis_t *ctx, const char *key)
+{
+	static const size_t nargs = 1;
+	size_t lengths[]     = { strlen(key) };
+	const char *values[] = { key };
+	ctx->error = NULL;
+	char *command = picoredis_command_create(PICOREDIS_EXISTS, nargs, lengths, values);
+	picoredis_send_command(ctx, command);
+	if (picoredis_has_error(ctx)) return 0;
+
+	picoredis_reply_t *reply = picoredis_receive_command(ctx);
+	if (!reply) return 0;
+
+	return reply->v.ivalue;
+}
+
+int picoredis_exec_del(picoredis_t *ctx, size_t nargs, ...)
+{
+	ctx->error = NULL;
+	va_list list;
+	va_start(list, nargs);
+	size_t lengths[nargs];
+	const char *values[nargs];
+	size_t i = 0;
+	for (; i < nargs; ++i) {
+		char *k = va_arg(list, char *);
+		lengths[i] = strlen(k);
+		values[i]  = k;
+	}
+	va_end(list);
+	char *command = picoredis_command_create(PICOREDIS_DEL, nargs, lengths, values);
+	picoredis_send_command(ctx, command);
+	if (picoredis_has_error(ctx)) return 0;
+
+	picoredis_reply_t *reply = picoredis_receive_command(ctx);
+	if (!reply) return 0;
+
+	return reply->v.ivalue;
+}
+
+char *picoredis_exec_type(picoredis_t *ctx, const char *key)
+{
+	static const size_t nargs = 1;
+	size_t lengths[]     = { strlen(key) };
+	const char *values[] = { key };
+	ctx->error = NULL;
+	char *command = picoredis_command_create(PICOREDIS_TYPE, nargs, lengths, values);
+	picoredis_send_command(ctx, command);
+	if (picoredis_has_error(ctx)) return NULL;
+
+	picoredis_reply_t *reply = picoredis_receive_command(ctx);
+	if (!reply) return NULL;
+
+	return reply->v.svalue;
+}
+
+void picoredis_exec_set(picoredis_t *ctx, const char *key, const char *value)
 {
 	static const size_t nargs = 2;
 	size_t lengths[]     = { strlen(key), strlen(value) };
 	const char *values[] = { key, value };
-
+	ctx->error = NULL;
 	char *command = picoredis_command_create(PICOREDIS_SET, nargs, lengths, values);
 	picoredis_send_command(ctx, command);
 	if (picoredis_has_error(ctx)) return;
@@ -292,18 +624,19 @@ void picoredis_command_set(picoredis_t *ctx, const char *key, const char *value)
 	}
 }
 
-char *picoredis_command_get(picoredis_t *ctx, const char *key)
+char *picoredis_exec_get(picoredis_t *ctx, const char *key)
 {
 	static const size_t nargs = 1;
 	size_t lengths[]     = { strlen(key) };
 	const char *values[] = { key };
-
+	ctx->error = NULL;
 	char *command = picoredis_command_create(PICOREDIS_GET, nargs, lengths, values);
 	picoredis_send_command(ctx, command);
 	if (picoredis_has_error(ctx)) return NULL;
 
 	picoredis_reply_t *reply = picoredis_receive_command(ctx);
 	if (!reply) return NULL;
+	if (reply->length < 0) return NULL;
 
 	return reply->v.svalue;
 }
