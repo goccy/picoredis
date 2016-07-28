@@ -269,6 +269,21 @@ static int picoredis_connect_with_ctx(picoredis_t *ctx, const char *host, int po
     return sd;
 }
 
+static picoredis_t *picoredis_connect_with_address(const char *address)
+{
+    picoredis_t *ctx = picoredis_alloc();
+    char *seek_ptr = (char *)address;
+    for (; *seek_ptr != '\0' && *seek_ptr != ':'; ++seek_ptr) {}
+    size_t hostname_length = seek_ptr - address;
+    char *host = (char *)malloc(hostname_length + 1);
+    memset(host, 0, hostname_length + 1);
+    memcpy(host, address, hostname_length);
+    char port[8] = {0};
+    memcpy(port, seek_ptr + 1, strlen(seek_ptr + 1));
+    ctx->sock = picoredis_connect_with_ctx(ctx, host, atoi(port));
+    return ctx;
+}
+
 static picoredis_t *picoredis_connect(const char *host, int port)
 {
     picoredis_t *ctx = picoredis_alloc();
