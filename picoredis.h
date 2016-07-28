@@ -1,3 +1,6 @@
+#ifndef __PICOREDIS_H__
+#define __PICOREDIS_H__
+
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -176,7 +179,7 @@ typedef struct {
     size_t name_length;
 } picoredis_command_type_t;
 
-picoredis_t *picoredis_alloc(void)
+static picoredis_t *picoredis_alloc(void)
 {
     picoredis_t *ret = (picoredis_t *)malloc(sizeof(picoredis_t));
     memset(ret, 0, sizeof(picoredis_t));
@@ -185,7 +188,7 @@ picoredis_t *picoredis_alloc(void)
     return ret;
 }
 
-void picoredis_free(picoredis_t *ctx)
+static void picoredis_free(picoredis_t *ctx)
 {
     if (!ctx) return;
 
@@ -194,12 +197,12 @@ void picoredis_free(picoredis_t *ctx)
     ctx = NULL;
 }
 
-int picoredis_has_error(picoredis_t *ctx)
+static int picoredis_has_error(picoredis_t *ctx)
 {
     return ctx->error != NULL;
 }
 
-picoredis_array_t *picoredis_array_alloc(int num)
+static picoredis_array_t *picoredis_array_alloc(int num)
 {
     picoredis_array_t *ret = (picoredis_array_t *)malloc(sizeof(picoredis_array_t));
     memset(ret, 0, sizeof(picoredis_array_t));
@@ -208,7 +211,7 @@ picoredis_array_t *picoredis_array_alloc(int num)
     return ret;
 }
 
-void picoredis_array_free(picoredis_array_t *array)
+static void picoredis_array_free(picoredis_array_t *array)
 {
     if (!array) return;
 
@@ -217,18 +220,18 @@ void picoredis_array_free(picoredis_array_t *array)
     array = NULL;
 }
 
-size_t picoredis_array_num(picoredis_array_t *array)
+static size_t picoredis_array_num(picoredis_array_t *array)
 {
     return array->num;
 }
 
-const char *picoredis_array_get(picoredis_array_t *array, int idx)
+static const char *picoredis_array_get(picoredis_array_t *array, int idx)
 {
     assert(0 <= idx && idx < array->num);
     return array->values[idx];
 }
 
-int picoredis_connect_with_ctx(picoredis_t *ctx, const char *host, int port)
+static int picoredis_connect_with_ctx(picoredis_t *ctx, const char *host, int port)
 {
     ctx->host = host;
     ctx->port = port;
@@ -266,14 +269,14 @@ int picoredis_connect_with_ctx(picoredis_t *ctx, const char *host, int port)
     return sd;
 }
 
-picoredis_t *picoredis_connect(const char *host, int port)
+static picoredis_t *picoredis_connect(const char *host, int port)
 {
     picoredis_t *ctx = picoredis_alloc();
     ctx->sock = picoredis_connect_with_ctx(ctx, host, port);
     return ctx;
 }
 
-size_t picoredis_total_args_length(int nargs, size_t *lengths)
+static size_t picoredis_total_args_length(int nargs, size_t *lengths)
 {
     size_t total_length = 0;
     size_t i = 0;
@@ -285,7 +288,7 @@ size_t picoredis_total_args_length(int nargs, size_t *lengths)
     return total_length;
 }
 
-char *picoredis_parse_command_args(int nargs, size_t *lengths, const char **values)
+static char *picoredis_parse_command_args(int nargs, size_t *lengths, const char **values)
 {
     static const size_t protocol_char   = 5; // '\r', '\n', '$', '\r', '\n'
     static const size_t protocol_length = 9; // '\', 'r', '\', 'n', '$', '\', 'r', '\', 'n'
@@ -311,7 +314,7 @@ char *picoredis_parse_command_args(int nargs, size_t *lengths, const char **valu
 
 #define COMMAND_DEF(type) { PICOREDIS_ ## type, #type, strlen(#type) }
 
-picoredis_command_type_t picoredis_get_command_type(picoredis_command_type type)
+static picoredis_command_type_t picoredis_get_command_type(picoredis_command_type type)
 {
     static picoredis_command_type_t all_command_types[] = {
         COMMAND_DEF(QUIT),
@@ -441,7 +444,7 @@ picoredis_command_type_t picoredis_get_command_type(picoredis_command_type type)
     return all_command_types[i];
 }
 
-size_t picoredis_command_header_size(size_t nargs, picoredis_command_type_t *type)
+static size_t picoredis_command_header_size(size_t nargs, picoredis_command_type_t *type)
 {
     size_t total_args_num                 = nargs + 1;
     size_t total_args_num_digit           = (size_t)log10(total_args_num) + 1;
@@ -450,7 +453,7 @@ size_t picoredis_command_header_size(size_t nargs, picoredis_command_type_t *typ
     return protocol_char + total_args_num_digit + name_length_num_digit + type->name_length;
 }
 
-char *picoredis_command_create(picoredis_command_type type, size_t nargs, size_t *lengths, const char **values)
+static char *picoredis_command_create(picoredis_command_type type, size_t nargs, size_t *lengths, const char **values)
 {
     picoredis_command_type_t command_type = picoredis_get_command_type(type);
     char *args          = picoredis_parse_command_args(nargs, lengths, values);
@@ -462,7 +465,7 @@ char *picoredis_command_create(picoredis_command_type type, size_t nargs, size_t
     return command;
 }
 
-int picoredis_send_command(picoredis_t *ctx, char *command)
+static int picoredis_send_command(picoredis_t *ctx, char *command)
 {
     int ret = send(ctx->sock, command, strlen(command), 0);
     if (ret <= 0) {
@@ -471,7 +474,7 @@ int picoredis_send_command(picoredis_t *ctx, char *command)
     return ret;
 }
 
-picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx)
+static picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx)
 {
     memset(ctx->receive_buf, 0, BUFSIZ);
     int recv_result = recv(ctx->sock, ctx->receive_buf, BUFSIZ, 0);
@@ -567,7 +570,7 @@ picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx)
     return reply;
 }
 
-picoredis_reply_t *picoredis_send_and_reply0(picoredis_t *ctx, picoredis_command_type type)
+static picoredis_reply_t *picoredis_send_and_reply0(picoredis_t *ctx, picoredis_command_type type)
 {
     ctx->error = NULL;
     picoredis_send_command(ctx, picoredis_command_create(type, 0, NULL, NULL));
@@ -576,7 +579,7 @@ picoredis_reply_t *picoredis_send_and_reply0(picoredis_t *ctx, picoredis_command
     return picoredis_receive_command(ctx);
 }
 
-picoredis_reply_t *picoredis_send_and_reply1(picoredis_t *ctx, picoredis_command_type type, const char *arg)
+static picoredis_reply_t *picoredis_send_and_reply1(picoredis_t *ctx, picoredis_command_type type, const char *arg)
 {
     size_t lengths[]     = { strlen(arg) };
     const char *values[] = { arg };
@@ -587,7 +590,7 @@ picoredis_reply_t *picoredis_send_and_reply1(picoredis_t *ctx, picoredis_command
     return picoredis_receive_command(ctx);
 }
 
-picoredis_reply_t *picoredis_send_and_reply2(picoredis_t *ctx, picoredis_command_type type, const char *arg1, const char *arg2)
+static picoredis_reply_t *picoredis_send_and_reply2(picoredis_t *ctx, picoredis_command_type type, const char *arg1, const char *arg2)
 {
     static const size_t nargs = 2;
     size_t lengths[]     = { strlen(arg1), strlen(arg2) };
@@ -599,7 +602,7 @@ picoredis_reply_t *picoredis_send_and_reply2(picoredis_t *ctx, picoredis_command
     return picoredis_receive_command(ctx);
 }
 
-picoredis_reply_t *picoredis_send_and_reply3(picoredis_t *ctx, picoredis_command_type type, const char *arg1, const char *arg2, const char *arg3)
+static picoredis_reply_t *picoredis_send_and_reply3(picoredis_t *ctx, picoredis_command_type type, const char *arg1, const char *arg2, const char *arg3)
 {
     static const size_t nargs = 3;
     size_t lengths[]     = { strlen(arg1), strlen(arg2), strlen(arg3) };
@@ -611,7 +614,7 @@ picoredis_reply_t *picoredis_send_and_reply3(picoredis_t *ctx, picoredis_command
     return picoredis_receive_command(ctx);
 }
 
-picoredis_reply_t *picoredis_send_and_replyn(picoredis_t *ctx, picoredis_command_type type, size_t nargs, va_list list)
+static picoredis_reply_t *picoredis_send_and_replyn(picoredis_t *ctx, picoredis_command_type type, size_t nargs, va_list list)
 {
     size_t lengths[nargs];
     const char *values[nargs];
@@ -632,12 +635,12 @@ picoredis_reply_t *picoredis_send_and_replyn(picoredis_t *ctx, picoredis_command
 
 // ========= Command API  ============ //
 
-void picoredis_exec_quit(picoredis_t *ctx)
+static void picoredis_exec_quit(picoredis_t *ctx)
 {
     picoredis_send_and_reply0(ctx, PICOREDIS_QUIT);
 }
 
-int picoredis_exec_auth(picoredis_t *ctx, const char *password)
+static int picoredis_exec_auth(picoredis_t *ctx, const char *password)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_AUTH, password);
     if (!reply) {
@@ -652,13 +655,13 @@ int picoredis_exec_auth(picoredis_t *ctx, const char *password)
     return 1;
 }
 
-int picoredis_exec_exists(picoredis_t *ctx, const char *key)
+static int picoredis_exec_exists(picoredis_t *ctx, const char *key)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_EXISTS, key);
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_del(picoredis_t *ctx, size_t nargs, ...)
+static int picoredis_exec_del(picoredis_t *ctx, size_t nargs, ...)
 {
     va_list list;
     va_start(list, nargs);
@@ -667,43 +670,43 @@ int picoredis_exec_del(picoredis_t *ctx, size_t nargs, ...)
     return reply ? reply->v.ivalue : 0;
 }
 
-char *picoredis_exec_type(picoredis_t *ctx, const char *key)
+static char *picoredis_exec_type(picoredis_t *ctx, const char *key)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_TYPE, key);
     return reply ? reply->v.svalue : NULL;
 }
 
-picoredis_array_t *picoredis_exec_keys(picoredis_t *ctx, const char *key)
+static picoredis_array_t *picoredis_exec_keys(picoredis_t *ctx, const char *key)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_KEYS, key);
     return reply ? reply->v.avalue : NULL;
 }
 
-char *picoredis_exec_randomkey(picoredis_t *ctx)
+static char *picoredis_exec_randomkey(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_RANDOMKEY);
     return reply ? reply->v.svalue : NULL;
 }
 
-int picoredis_exec_rename(picoredis_t *ctx, const char *oldkey, const char *newkey)
+static int picoredis_exec_rename(picoredis_t *ctx, const char *oldkey, const char *newkey)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_RENAME, oldkey, newkey);
     return reply ? (reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1) : 0;
 }
 
-int picoredis_exec_renamenx(picoredis_t *ctx, const char *oldkey, const char *newkey)
+static int picoredis_exec_renamenx(picoredis_t *ctx, const char *oldkey, const char *newkey)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_RENAMENX, oldkey, newkey);
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_dbsize(picoredis_t *ctx)
+static int picoredis_exec_dbsize(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_DBSIZE);
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_expire(picoredis_t *ctx, const char *key, size_t seconds)
+static int picoredis_exec_expire(picoredis_t *ctx, const char *key, size_t seconds)
 {
     char int_value[64] = {0};
     snprintf(int_value, sizeof(int_value), "%zu", seconds);
@@ -711,7 +714,7 @@ int picoredis_exec_expire(picoredis_t *ctx, const char *key, size_t seconds)
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_expireat(picoredis_t *ctx, const char *key, time_t unixtime)
+static int picoredis_exec_expireat(picoredis_t *ctx, const char *key, time_t unixtime)
 {
     char time_value[64] = {0};
     snprintf(time_value, sizeof(time_value), "%zu", unixtime);
@@ -719,19 +722,19 @@ int picoredis_exec_expireat(picoredis_t *ctx, const char *key, time_t unixtime)
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_persist(picoredis_t *ctx, const char *key)
+static int picoredis_exec_persist(picoredis_t *ctx, const char *key)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_PERSIST, key);
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_ttl(picoredis_t *ctx, const char *key)
+static int picoredis_exec_ttl(picoredis_t *ctx, const char *key)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_TTL, key);
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_select(picoredis_t *ctx, size_t index)
+static int picoredis_exec_select(picoredis_t *ctx, size_t index)
 {
     char index_value[64] = {0};
     snprintf(index_value, sizeof(index_value), "%zu", index);
@@ -739,7 +742,7 @@ int picoredis_exec_select(picoredis_t *ctx, size_t index)
     return reply ? (reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1) : 0;
 }
 
-int picoredis_exec_move(picoredis_t *ctx, const char *key, size_t dbindex)
+static int picoredis_exec_move(picoredis_t *ctx, const char *key, size_t dbindex)
 {
     char index_value[64] = {0};
     snprintf(index_value, sizeof(index_value), "%zu", dbindex);
@@ -747,19 +750,19 @@ int picoredis_exec_move(picoredis_t *ctx, const char *key, size_t dbindex)
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_flushdb(picoredis_t *ctx)
+static int picoredis_exec_flushdb(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_FLUSHDB);
     return reply ? (reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1) : 0;
 }
 
-int picoredis_exec_flushall(picoredis_t *ctx)
+static int picoredis_exec_flushall(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_FLUSHALL);
     return reply ? (reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1) : 0;
 }
 
-int picoredis_exec_watch(picoredis_t *ctx, size_t nargs, ...)
+static int picoredis_exec_watch(picoredis_t *ctx, size_t nargs, ...)
 {
     va_list list;
     va_start(list, nargs);
@@ -768,31 +771,31 @@ int picoredis_exec_watch(picoredis_t *ctx, size_t nargs, ...)
     return reply ? (reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1) : 0;
 }
 
-int picoredis_exec_unwatch(picoredis_t *ctx)
+static int picoredis_exec_unwatch(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_UNWATCH);
     return reply ? (reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1) : 0;
 }
 
-int picoredis_exec_multi(picoredis_t *ctx)
+static int picoredis_exec_multi(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_MULTI);
     return reply ? (reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1) : 0;
 }
 
-int picoredis_exec_exec(picoredis_t *ctx)
+static int picoredis_exec_exec(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_EXEC);
     return reply ? (reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1) : 0;
 }
 
-int picoredis_exec_discard(picoredis_t *ctx)
+static int picoredis_exec_discard(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_DISCARD);
     return reply ? (reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1) : 0;
 }
 
-picoredis_array_t *picoredis_exec_sort(picoredis_t *ctx, size_t nargs, ...)
+static picoredis_array_t *picoredis_exec_sort(picoredis_t *ctx, size_t nargs, ...)
 {
     va_list list;
     va_start(list, nargs);
@@ -803,7 +806,7 @@ picoredis_array_t *picoredis_exec_sort(picoredis_t *ctx, size_t nargs, ...)
     return reply->v.avalue;
 }
 
-void picoredis_exec_set(picoredis_t *ctx, const char *key, const char *value)
+static void picoredis_exec_set(picoredis_t *ctx, const char *key, const char *value)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_SET, key, value);
     if (!reply) {
@@ -817,7 +820,7 @@ void picoredis_exec_set(picoredis_t *ctx, const char *key, const char *value)
     }
 }
 
-char *picoredis_exec_get(picoredis_t *ctx, const char *key)
+static char *picoredis_exec_get(picoredis_t *ctx, const char *key)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_GET, key);
     if (!reply) return NULL;
@@ -826,7 +829,7 @@ char *picoredis_exec_get(picoredis_t *ctx, const char *key)
     return reply->v.svalue;
 }
 
-char *picoredis_exec_getset(picoredis_t *ctx, const char *key, const char *value)
+static char *picoredis_exec_getset(picoredis_t *ctx, const char *key, const char *value)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_GETSET, key, value);
     if (!reply) return NULL;
@@ -835,13 +838,13 @@ char *picoredis_exec_getset(picoredis_t *ctx, const char *key, const char *value
     return reply->v.svalue;
 }
 
-int picoredis_exec_setnx(picoredis_t *ctx, const char *key, const char *value)
+static int picoredis_exec_setnx(picoredis_t *ctx, const char *key, const char *value)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_SETNX, key, value);
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_setex(picoredis_t *ctx, const char *key, time_t time, const char *value)
+static int picoredis_exec_setex(picoredis_t *ctx, const char *key, time_t time, const char *value)
 {
     char time_value[64] = {0};
     snprintf(time_value, sizeof(time_value), "%zu", time);
@@ -850,7 +853,7 @@ int picoredis_exec_setex(picoredis_t *ctx, const char *key, time_t time, const c
     return reply ? (reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1) : 0;
 }
 
-int picoredis_exec_mset(picoredis_t *ctx, size_t nargs, ...)
+static int picoredis_exec_mset(picoredis_t *ctx, size_t nargs, ...)
 {
     va_list list;
     va_start(list, nargs);
@@ -860,7 +863,7 @@ int picoredis_exec_mset(picoredis_t *ctx, size_t nargs, ...)
     return reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1;
 }
 
-int picoredis_exec_msetnx(picoredis_t *ctx, size_t nargs, ...)
+static int picoredis_exec_msetnx(picoredis_t *ctx, size_t nargs, ...)
 {
     va_list list;
     va_start(list, nargs);
@@ -870,13 +873,13 @@ int picoredis_exec_msetnx(picoredis_t *ctx, size_t nargs, ...)
     return reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1;
 }
 
-int picoredis_exec_incr(picoredis_t *ctx, const char *key)
+static int picoredis_exec_incr(picoredis_t *ctx, const char *key)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_INCR, key);
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_incrby(picoredis_t *ctx, const char *key, int value)
+static int picoredis_exec_incrby(picoredis_t *ctx, const char *key, int value)
 {
     char int_value[64] = {0};
     snprintf(int_value, sizeof(int_value), "%d", value);
@@ -885,13 +888,13 @@ int picoredis_exec_incrby(picoredis_t *ctx, const char *key, int value)
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_decr(picoredis_t *ctx, const char *key)
+static int picoredis_exec_decr(picoredis_t *ctx, const char *key)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_DECR, key);
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_decrby(picoredis_t *ctx, const char *key, int value)
+static int picoredis_exec_decrby(picoredis_t *ctx, const char *key, int value)
 {
     char int_value[64] = {0};
     snprintf(int_value, sizeof(int_value), "%d", value);
@@ -900,13 +903,13 @@ int picoredis_exec_decrby(picoredis_t *ctx, const char *key, int value)
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_append(picoredis_t *ctx, const char *key, const char *value)
+static int picoredis_exec_append(picoredis_t *ctx, const char *key, const char *value)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_APPEND, key, value);
     return reply ? reply->v.ivalue : 0;
 }
 
-char *picoredis_exec_substr(picoredis_t *ctx, const char *key, int start, int end)
+static char *picoredis_exec_substr(picoredis_t *ctx, const char *key, int start, int end)
 {
     char start_value[64] = {0};
     snprintf(start_value, sizeof(start_value), "%d", start);
@@ -918,25 +921,25 @@ char *picoredis_exec_substr(picoredis_t *ctx, const char *key, int start, int en
     return reply ? reply->v.svalue : NULL;
 }
 
-int picoredis_exec_lpush(picoredis_t *ctx, const char *key, const char *value)
+static int picoredis_exec_lpush(picoredis_t *ctx, const char *key, const char *value)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_LPUSH, key, value);
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_rpush(picoredis_t *ctx, const char *key, const char *value)
+static int picoredis_exec_rpush(picoredis_t *ctx, const char *key, const char *value)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_RPUSH, key, value);
     return reply ? reply->v.ivalue : 0;
 }
 
-int picoredis_exec_llen(picoredis_t *ctx, const char *key)
+static int picoredis_exec_llen(picoredis_t *ctx, const char *key)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_LLEN, key);
     return reply ? reply->v.ivalue : 0;
 }
 
-picoredis_array_t *picoredis_exec_lrange(picoredis_t *ctx, const char *key, int start, int end)
+static picoredis_array_t *picoredis_exec_lrange(picoredis_t *ctx, const char *key, int start, int end)
 {
     char start_value[64] = {0};
     snprintf(start_value, sizeof(start_value), "%d", start);
@@ -948,7 +951,7 @@ picoredis_array_t *picoredis_exec_lrange(picoredis_t *ctx, const char *key, int 
     return reply ? reply->v.avalue : NULL;
 }
 
-int picoredis_exec_ltrim(picoredis_t *ctx, const char *key, int start, int end)
+static int picoredis_exec_ltrim(picoredis_t *ctx, const char *key, int start, int end)
 {
     char start_value[64] = {0};
     snprintf(start_value, sizeof(start_value), "%d", start);
@@ -960,7 +963,7 @@ int picoredis_exec_ltrim(picoredis_t *ctx, const char *key, int start, int end)
     return reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1;
 }
 
-char *picoredis_exec_lindex(picoredis_t *ctx, const char *key, int index)
+static char *picoredis_exec_lindex(picoredis_t *ctx, const char *key, int index)
 {
     char int_value[64] = {0};
     snprintf(int_value, sizeof(int_value), "%d", index);
@@ -969,7 +972,7 @@ char *picoredis_exec_lindex(picoredis_t *ctx, const char *key, int index)
     return reply ? reply->v.svalue : NULL;
 }
 
-int picoredis_exec_lset(picoredis_t *ctx, const char *key, int index, const char *value)
+static int picoredis_exec_lset(picoredis_t *ctx, const char *key, int index, const char *value)
 {
     char int_value[64] = {0};
     snprintf(int_value, sizeof(int_value), "%d", index);
@@ -978,7 +981,7 @@ int picoredis_exec_lset(picoredis_t *ctx, const char *key, int index, const char
     return reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1;
 }
 
-int picoredis_exec_lrem(picoredis_t *ctx, const char *key, int count, const char *value)
+static int picoredis_exec_lrem(picoredis_t *ctx, const char *key, int count, const char *value)
 {
     char int_value[64] = {0};
     snprintf(int_value, sizeof(int_value), "%d", count);
@@ -987,60 +990,62 @@ int picoredis_exec_lrem(picoredis_t *ctx, const char *key, int count, const char
     return reply ? reply->v.ivalue : 0;
 }
 
-char *picoredis_exec_lpop(picoredis_t *ctx, const char *key)
+static char *picoredis_exec_lpop(picoredis_t *ctx, const char *key)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_LPOP, key);
     return reply ? reply->v.svalue : NULL;
 }
 
-char *picoredis_exec_rpop(picoredis_t *ctx, const char *key)
+static char *picoredis_exec_rpop(picoredis_t *ctx, const char *key)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_RPOP, key);
     return reply ? reply->v.svalue : NULL;
 }
 
-char *picoredis_exec_rpoplpush(picoredis_t *ctx, const char *srckey, const char *dstkey)
+static char *picoredis_exec_rpoplpush(picoredis_t *ctx, const char *srckey, const char *dstkey)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_RPOPLPUSH, srckey, dstkey);
     return reply ? reply->v.svalue : NULL;
 }
 
-int picoredis_exec_save(picoredis_t *ctx)
+static int picoredis_exec_save(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_SAVE);
     return reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1;
 }
 
-int picoredis_exec_bgsave(picoredis_t *ctx)
+static int picoredis_exec_bgsave(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_BGSAVE);
     return reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1;
 }
 
-int picoredis_exec_bgrewriteaof(picoredis_t *ctx)
+static int picoredis_exec_bgrewriteaof(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_BGREWRITEAOF);
     return reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1;
 }
 
-int picoredis_exec_lastsave(picoredis_t *ctx)
+static int picoredis_exec_lastsave(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_LASTSAVE);
     return reply ? reply->v.ivalue : 0;
 }
 
-void picoredis_exec_shutdown(picoredis_t *ctx)
+static void picoredis_exec_shutdown(picoredis_t *ctx)
 {
     picoredis_send_and_reply0(ctx, PICOREDIS_SHUTDOWN);
 }
 
-char *picoredis_exec_info(picoredis_t *ctx)
+static char *picoredis_exec_info(picoredis_t *ctx)
 {
     picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_INFO);
     return reply ? reply->v.svalue : NULL;
 }
 
-void picoredis_error(picoredis_t *ctx)
+static void picoredis_error(picoredis_t *ctx)
 {
     fprintf(stderr, "%s\n", ctx->error);
 }
+
+#endif /* __PICOREDIS_H__ */
