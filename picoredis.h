@@ -478,7 +478,7 @@ picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx)
         return NULL;
     }
     char *buf = ctx->receive_buf;
-//fprintf(stderr, "buf = [%s]\n", buf);
+    //fprintf(stderr, "buf = [%s]\n", buf);
     char *all_lines[BUFSIZ] = {0};
     size_t i = 0;
     size_t line_top_index = 0;
@@ -565,25 +565,67 @@ picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx)
     return reply;
 }
 
+picoredis_reply_t *picoredis_send_and_reply0(picoredis_t *ctx, picoredis_command_type type)
+{
+    ctx->error = NULL;
+    picoredis_send_command(ctx, picoredis_command_create(type, 0, NULL, NULL));
+    if (picoredis_has_error(ctx)) return NULL;
+
+    return picoredis_receive_command(ctx);
+}
+
+picoredis_reply_t *picoredis_send_and_reply1(picoredis_t *ctx, picoredis_command_type type, const char *arg)
+{
+    size_t lengths[]     = { strlen(arg) };
+    const char *values[] = { arg };
+    ctx->error = NULL;
+    picoredis_send_command(ctx, picoredis_command_create(type, 1, lengths, values));
+    if (picoredis_has_error(ctx)) return NULL;
+
+    return picoredis_receive_command(ctx);
+}
+
+picoredis_reply_t *picoredis_send_and_reply2(picoredis_t *ctx, picoredis_command_type type, const char *arg1, const char *arg2)
+{
+    static const size_t nargs = 2;
+    size_t lengths[]     = { strlen(arg1), strlen(arg2) };
+    const char *values[] = { arg1, arg2 };
+    ctx->error = NULL;
+    picoredis_send_command(ctx, picoredis_command_create(type, 2, lengths, values));
+    if (picoredis_has_error(ctx)) return NULL;
+
+    return picoredis_receive_command(ctx);
+}
+
+picoredis_reply_t *picoredis_send_and_replyn(picoredis_t *ctx, picoredis_command_type type, size_t nargs, va_list list)
+{
+    size_t lengths[nargs];
+    const char *values[nargs];
+    size_t i = 0;
+    for (; i < nargs; ++i) {
+        char *k    = va_arg(list, char *);
+        lengths[i] = strlen(k);
+        values[i]  = k;
+    }
+
+    ctx->error = NULL;
+    picoredis_send_command(ctx, picoredis_command_create(type, nargs, lengths, values));
+    if (picoredis_has_error(ctx)) return NULL;
+
+    return picoredis_receive_command(ctx);
+}
+
+
+// ========= Command API  ============ //
+
 void picoredis_exec_quit(picoredis_t *ctx)
 {
-    static const size_t nargs = 0;
-    ctx->error = NULL;
-    picoredis_send_command(ctx, picoredis_command_create(PICOREDIS_QUIT, nargs, NULL, NULL));
-    if (picoredis_has_error(ctx)) return;
+    picoredis_send_and_reply0(ctx, PICOREDIS_QUIT);
 }
 
 int picoredis_exec_auth(picoredis_t *ctx, const char *password)
 {
-    static const size_t nargs = 1;
-    size_t lengths[]     = { strlen(password) };
-    const char *values[] = { password };
-
-    ctx->error = NULL;
-    picoredis_send_command(ctx, picoredis_command_create(PICOREDIS_AUTH, nargs, lengths, values));
-    if (picoredis_has_error(ctx)) return 0;
-
-    picoredis_reply_t *reply = picoredis_receive_command(ctx);
+    picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_AUTH, password);
     if (!reply) {
         ctx->error = "cannot receive reply";
         return 0;
@@ -598,86 +640,66 @@ int picoredis_exec_auth(picoredis_t *ctx, const char *password)
 
 int picoredis_exec_exists(picoredis_t *ctx, const char *key)
 {
-    static const size_t nargs = 1;
-    size_t lengths[]     = { strlen(key) };
-    const char *values[] = { key };
-    ctx->error = NULL;
-    char *command = picoredis_command_create(PICOREDIS_EXISTS, nargs, lengths, values);
-    picoredis_send_command(ctx, command);
-    if (picoredis_has_error(ctx)) return 0;
-
-    picoredis_reply_t *reply = picoredis_receive_command(ctx);
-    if (!reply) return 0;
-
-    return reply->v.ivalue;
+    picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_EXISTS, key);
+    return reply ? reply->v.ivalue : 0;
 }
 
 int picoredis_exec_del(picoredis_t *ctx, size_t nargs, ...)
 {
-    ctx->error = NULL;
     va_list list;
     va_start(list, nargs);
-    size_t lengths[nargs];
-    const char *values[nargs];
-    size_t i = 0;
-    for (; i < nargs; ++i) {
-        char *k = va_arg(list, char *);
-        lengths[i] = strlen(k);
-        values[i]  = k;
-    }
+    picoredis_reply_t *reply = picoredis_send_and_replyn(ctx, PICOREDIS_DEL, nargs, list);
     va_end(list);
-    char *command = picoredis_command_create(PICOREDIS_DEL, nargs, lengths, values);
-    picoredis_send_command(ctx, command);
-    if (picoredis_has_error(ctx)) return 0;
-
-    picoredis_reply_t *reply = picoredis_receive_command(ctx);
-    if (!reply) return 0;
-
-    return reply->v.ivalue;
+    return reply ? reply->v.ivalue : 0;
 }
 
 char *picoredis_exec_type(picoredis_t *ctx, const char *key)
 {
-    static const size_t nargs = 1;
-    size_t lengths[]     = { strlen(key) };
-    const char *values[] = { key };
-    ctx->error = NULL;
-    char *command = picoredis_command_create(PICOREDIS_TYPE, nargs, lengths, values);
-    picoredis_send_command(ctx, command);
-    if (picoredis_has_error(ctx)) return NULL;
-
-    picoredis_reply_t *reply = picoredis_receive_command(ctx);
-    if (!reply) return NULL;
-
-    return reply->v.svalue;
+    picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_TYPE, key);
+    return reply ? reply->v.svalue : NULL;
 }
 
 picoredis_array_t *picoredis_exec_keys(picoredis_t *ctx, const char *key)
 {
-    static const size_t nargs = 1;
-    size_t lengths[]     = { strlen(key) };
-    const char *values[] = { key };
-    ctx->error = NULL;
-    char *command = picoredis_command_create(PICOREDIS_KEYS, nargs, lengths, values);
-    picoredis_send_command(ctx, command);
-    if (picoredis_has_error(ctx)) return NULL;
+    picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_KEYS, key);
+    return reply ? reply->v.avalue : NULL;
+}
 
-    picoredis_reply_t *reply = picoredis_receive_command(ctx);
-    if (!reply) return NULL;
-    return reply->v.avalue;
+char *picoredis_exec_randomkey(picoredis_t *ctx)
+{
+    picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_RANDOMKEY);
+    return reply ? reply->v.svalue : NULL;
+}
+
+int picoredis_exec_rename(picoredis_t *ctx, const char *oldkey, const char *newkey)
+{
+    picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_RENAME, oldkey, newkey);
+    return reply ? (reply->type == PICOREDIS_REPLY_ERROR ? 0 : 1) : 0;
+}
+
+int picoredis_exec_renamenx(picoredis_t *ctx, const char *oldkey, const char *newkey)
+{
+    picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_RENAMENX, oldkey, newkey);
+    return reply ? reply->v.ivalue : 0;
+}
+
+int picoredis_exec_dbsize(picoredis_t *ctx)
+{
+    picoredis_reply_t *reply = picoredis_send_and_reply0(ctx, PICOREDIS_DBSIZE);
+    return reply ? reply->v.ivalue : 0;
+}
+
+int picoredis_exec_expire(picoredis_t *ctx, const char *key, size_t seconds)
+{
+    char int_value[64] = {0};
+    snprintf(int_value, sizeof(int_value), "%zu", seconds);
+    picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_EXPIRE, key, int_value);
+    return reply ? reply->v.ivalue : 0;
 }
 
 void picoredis_exec_set(picoredis_t *ctx, const char *key, const char *value)
 {
-    static const size_t nargs = 2;
-    size_t lengths[]     = { strlen(key), strlen(value) };
-    const char *values[] = { key, value };
-    ctx->error = NULL;
-    char *command = picoredis_command_create(PICOREDIS_SET, nargs, lengths, values);
-    picoredis_send_command(ctx, command);
-    if (picoredis_has_error(ctx)) return;
-
-    picoredis_reply_t *reply = picoredis_receive_command(ctx);
+    picoredis_reply_t *reply = picoredis_send_and_reply2(ctx, PICOREDIS_SET, key, value);
     if (!reply) {
         ctx->error = "cannot receive reply";
         return;
@@ -691,15 +713,7 @@ void picoredis_exec_set(picoredis_t *ctx, const char *key, const char *value)
 
 char *picoredis_exec_get(picoredis_t *ctx, const char *key)
 {
-    static const size_t nargs = 1;
-    size_t lengths[]     = { strlen(key) };
-    const char *values[] = { key };
-    ctx->error = NULL;
-    char *command = picoredis_command_create(PICOREDIS_GET, nargs, lengths, values);
-    picoredis_send_command(ctx, command);
-    if (picoredis_has_error(ctx)) return NULL;
-
-    picoredis_reply_t *reply = picoredis_receive_command(ctx);
+    picoredis_reply_t *reply = picoredis_send_and_reply1(ctx, PICOREDIS_GET, key);
     if (!reply) return NULL;
     if (reply->length < 0) return NULL;
 
