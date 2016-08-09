@@ -179,6 +179,123 @@ typedef struct {
     size_t name_length;
 } picoredis_command_type_t;
 
+#define PICOREDIS_PUBLIC_API  static
+#define PICOREDIS_PRIVATE_API static
+
+PICOREDIS_PUBLIC_API picoredis_t *picoredis_alloc(void);
+PICOREDIS_PUBLIC_API picoredis_t *picoredis_connect_with_address(const char *address);
+PICOREDIS_PUBLIC_API picoredis_t *picoredis_connect(const char *host, int port);
+PICOREDIS_PUBLIC_API void picoredis_free(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API void picoredis_error(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_has_error(picoredis_t *ctx);
+
+PICOREDIS_PUBLIC_API picoredis_array_t *picoredis_array_alloc(int num);
+PICOREDIS_PUBLIC_API void picoredis_array_free(picoredis_array_t *array);
+PICOREDIS_PUBLIC_API size_t picoredis_array_num(picoredis_array_t *array);
+PICOREDIS_PUBLIC_API const char *picoredis_array_get(picoredis_array_t *array, int idx);
+
+PICOREDIS_PUBLIC_API void picoredis_exec_quit(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_exec_auth(picoredis_t *ctx, const char *password);
+PICOREDIS_PUBLIC_API int picoredis_exec_exists(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API int picoredis_exec_del(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API char *picoredis_exec_type(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API picoredis_array_t *picoredis_exec_keys(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API char *picoredis_exec_randomkey(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_exec_rename(picoredis_t *ctx, const char *oldkey, const char *newkey);
+PICOREDIS_PUBLIC_API int picoredis_exec_renamenx(picoredis_t *ctx, const char *oldkey, const char *newkey);
+PICOREDIS_PUBLIC_API int picoredis_exec_dbsize(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_exec_expire(picoredis_t *ctx, const char *key, size_t seconds);
+PICOREDIS_PUBLIC_API int picoredis_exec_expireat(picoredis_t *ctx, const char *key, time_t unixtime);
+PICOREDIS_PUBLIC_API int picoredis_exec_persist(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API int picoredis_exec_ttl(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API int picoredis_exec_select(picoredis_t *ctx, size_t index);
+PICOREDIS_PUBLIC_API int picoredis_exec_move(picoredis_t *ctx, const char *key, size_t dbindex);
+PICOREDIS_PUBLIC_API int picoredis_exec_flushdb(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_exec_flushall(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_exec_watch(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API int picoredis_exec_unwatch(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_exec_multi(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_exec_exec(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_exec_discard(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API picoredis_array_t *picoredis_exec_sort(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API void picoredis_exec_set(picoredis_t *ctx, const char *key, const char *value);
+PICOREDIS_PUBLIC_API char *picoredis_exec_get(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API char *picoredis_exec_getset(picoredis_t *ctx, const char *key, const char *value);
+PICOREDIS_PUBLIC_API int picoredis_exec_setnx(picoredis_t *ctx, const char *key, const char *value);
+PICOREDIS_PUBLIC_API int picoredis_exec_setex(picoredis_t *ctx, const char *key, time_t time, const char *value);
+PICOREDIS_PUBLIC_API int picoredis_exec_mset(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API int picoredis_exec_msetnx(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API int picoredis_exec_incr(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API int picoredis_exec_incrby(picoredis_t *ctx, const char *key, int value);
+PICOREDIS_PUBLIC_API int picoredis_exec_decr(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API int picoredis_exec_decrby(picoredis_t *ctx, const char *key, int value);
+PICOREDIS_PUBLIC_API int picoredis_exec_append(picoredis_t *ctx, const char *key, const char *value);
+PICOREDIS_PUBLIC_API char *picoredis_exec_substr(picoredis_t *ctx, const char *key, int start, int end);
+PICOREDIS_PUBLIC_API int picoredis_exec_lpush(picoredis_t *ctx, const char *key, const char *value);
+PICOREDIS_PUBLIC_API int picoredis_exec_rpush(picoredis_t *ctx, const char *key, const char *value);
+PICOREDIS_PUBLIC_API int picoredis_exec_llen(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API picoredis_array_t *picoredis_exec_lrange(picoredis_t *ctx, const char *key, int start, int end);
+PICOREDIS_PUBLIC_API int picoredis_exec_ltrim(picoredis_t *ctx, const char *key, int start, int end);
+PICOREDIS_PUBLIC_API char *picoredis_exec_lindex(picoredis_t *ctx, const char *key, int index);
+PICOREDIS_PUBLIC_API int picoredis_exec_lset(picoredis_t *ctx, const char *key, int index, const char *value);
+PICOREDIS_PUBLIC_API int picoredis_exec_lrem(picoredis_t *ctx, const char *key, int count, const char *value);
+PICOREDIS_PUBLIC_API char *picoredis_exec_lpop(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API char *picoredis_exec_rpop(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API char *picoredis_exec_rpoplpush(picoredis_t *ctx, const char *srckey, const char *dstkey);
+PICOREDIS_PUBLIC_API int picoredis_exec_sadd(picoredis_t *ctx, const char *key, const char *member);
+PICOREDIS_PUBLIC_API int picoredis_exec_srem(picoredis_t *ctx, const char *key, const char *member);
+PICOREDIS_PUBLIC_API char *picoredis_exec_spop(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API int picoredis_exec_smove(picoredis_t *ctx, const char *srckey, const char *dstkey, const char *member);
+PICOREDIS_PUBLIC_API int picoredis_exec_scard(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API int picoredis_exec_sismember(picoredis_t *ctx, const char *key, const char *member);
+PICOREDIS_PUBLIC_API picoredis_array_t *picoredis_exec_sinter(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API int picoredis_exec_sinterstore(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API picoredis_array_t *picoredis_exec_sunion(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API int picoredis_exec_sunionstore(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API picoredis_array_t *picoredis_exec_sdiff(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API int picoredis_exec_sdiffstore(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API picoredis_array_t *picoredis_exec_smembers(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API char *picoredis_exec_srandmember(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API int picoredis_exec_zadd(picoredis_t *ctx, const char *key, double score, const char *member);
+PICOREDIS_PUBLIC_API int picoredis_exec_zrem(picoredis_t *ctx, const char *key, const char *member);
+PICOREDIS_PUBLIC_API char *picoredis_exec_zincrby(picoredis_t *ctx, const char *key, double incr, const char *member);
+PICOREDIS_PUBLIC_API int picoredis_exec_zrank(picoredis_t *ctx, const char *key, const char *member);
+PICOREDIS_PUBLIC_API int picoredis_exec_zrevrank(picoredis_t *ctx, const char *key, const char *member);
+PICOREDIS_PUBLIC_API picoredis_array_t *picoredis_exec_zrange(picoredis_t *ctx, const char *key, int start, int stop, int is_with_score);
+PICOREDIS_PUBLIC_API picoredis_array_t *picoredis_exec_zrevrange(picoredis_t *ctx, const char *key, int start, int stop, int is_with_score);
+PICOREDIS_PUBLIC_API picoredis_array_t *picoredis_exec_zrangebyscore(picoredis_t *ctx, const char *key, const char *min, const char *max, int is_with_score);
+PICOREDIS_PUBLIC_API int picoredis_exec_zcount(picoredis_t *ctx, const char *key, const char *min, const char *max);
+PICOREDIS_PUBLIC_API int picoredis_exec_zremrangebyrank(picoredis_t *ctx, const char *key, int start, int stop);
+PICOREDIS_PUBLIC_API int picoredis_exec_zremrangebyscore(picoredis_t *ctx, const char *key, const char *min, const char *max);
+PICOREDIS_PUBLIC_API int picoredis_exec_zcard(picoredis_t *ctx, const char *key);
+PICOREDIS_PUBLIC_API char *picoredis_exec_zscore(picoredis_t *ctx, const char *key, const char *member);
+PICOREDIS_PUBLIC_API int picoredis_exec_zunionstore(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API int picoredis_exec_zinterstore(picoredis_t *ctx, size_t nargs, ...);
+PICOREDIS_PUBLIC_API int picoredis_exec_save(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_exec_bgsave(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_exec_bgrewriteaof(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API int picoredis_exec_lastsave(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API void picoredis_exec_shutdown(picoredis_t *ctx);
+PICOREDIS_PUBLIC_API char *picoredis_exec_info(picoredis_t *ctx);
+
+
+PICOREDIS_PRIVATE_API int picoredis_connect_with_ctx(picoredis_t *ctx, const char *host, int port);
+PICOREDIS_PRIVATE_API size_t picoredis_total_args_length(int nargs, size_t *lengths);
+PICOREDIS_PRIVATE_API char *picoredis_parse_command_args(int nargs, size_t *lengths, const char **values);
+PICOREDIS_PRIVATE_API picoredis_command_type_t picoredis_get_command_type(picoredis_command_type type);
+PICOREDIS_PRIVATE_API size_t picoredis_command_header_size(size_t nargs, picoredis_command_type_t *type);
+PICOREDIS_PRIVATE_API char *picoredis_command_create(picoredis_command_type type, size_t nargs, size_t *lengths, const char **values);
+PICOREDIS_PRIVATE_API int picoredis_send_command(picoredis_t *ctx, char *command);
+PICOREDIS_PRIVATE_API picoredis_reply_t *picoredis_receive_command(picoredis_t *ctx);
+PICOREDIS_PRIVATE_API picoredis_reply_t *picoredis_send_and_reply0(picoredis_t *ctx, picoredis_command_type type);
+PICOREDIS_PRIVATE_API picoredis_reply_t *picoredis_send_and_reply1(picoredis_t *ctx, picoredis_command_type type, const char *arg);
+PICOREDIS_PRIVATE_API picoredis_reply_t *picoredis_send_and_reply2(picoredis_t *ctx, picoredis_command_type type, const char *arg1, const char *arg2);
+PICOREDIS_PRIVATE_API picoredis_reply_t *picoredis_send_and_reply3(picoredis_t *ctx, picoredis_command_type type, const char *arg1, const char *arg2, const char *arg3);
+PICOREDIS_PRIVATE_API picoredis_reply_t *picoredis_send_and_reply4(picoredis_t *ctx, picoredis_command_type type, const char *arg1, const char *arg2, const char *arg3, const char *arg4);
+PICOREDIS_PRIVATE_API picoredis_reply_t *picoredis_send_and_replyn(picoredis_t *ctx, picoredis_command_type type, size_t nargs, va_list list);
+
+
+
 static picoredis_t *picoredis_alloc(void)
 {
     picoredis_t *ret = (picoredis_t *)malloc(sizeof(picoredis_t));
@@ -659,8 +776,6 @@ static picoredis_reply_t *picoredis_send_and_replyn(picoredis_t *ctx, picoredis_
     return picoredis_receive_command(ctx);
 }
 
-
-// ========= Command API  ============ //
 
 static void picoredis_exec_quit(picoredis_t *ctx)
 {
